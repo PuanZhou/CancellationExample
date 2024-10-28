@@ -1,0 +1,61 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>
+
+<button id="downloadButton">下載 PDF</button>
+<button id="cancelButton">取消下載</button>
+<p id="status"></p>
+
+@section Scripts {
+    <script>
+        let abortController;
+
+        $(document).ready(function () {
+            $("#downloadButton").click(async function () {
+                $("#status").text("開始下載...");
+
+                // 創建一個新的 AbortController 實例
+                abortController = new AbortController();
+                const signal = abortController.signal;
+                try {
+                    const response = await fetch("/Home/DownloadPdf", {
+                        method: "POST",
+                        signal: signal
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('下載失敗: ' + response.statusText);
+                    }
+
+                    const blob = await response.blob(); // 取得 Blob 物件
+                    const url = window.URL.createObjectURL(blob); // 創建下載 URL
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "momoga.pdf";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    $("#status").text("下載完成");
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        $("#status").text("下載已取消。");
+                    } else {
+                        $("#status").text("發生錯誤: " + error.message);
+                    }
+                }
+            });
+
+            $("#cancelButton").click(function () {
+                if (abortController) {
+                    abortController.abort(); // 取消請求
+                    $("#status").text("下載已取消。");
+                }
+            });
+        });
+    </script>
+}
